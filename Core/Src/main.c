@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "i2c.h"
 #include "i2s.h"
 #include "spi.h"
@@ -28,6 +29,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,8 +68,51 @@ void MX_USB_HOST_Process(void);
 
 #define LIS3DSH_CS_LOW()   HAL_GPIO_WritePin(LIS3DSH_CS_PORT, LIS3DSH_CS_PIN, GPIO_PIN_RESET)
 #define LIS3DSH_CS_HIGH()  HAL_GPIO_WritePin(LIS3DSH_CS_PORT, LIS3DSH_CS_PIN, GPIO_PIN_SET)
-
 extern SPI_HandleTypeDef hspi1;
+
+
+#define CS43L22_ADDR 0x94
+#define AUDIO_BUF_SIZE 256
+int16_t audioBuffer[AUDIO_BUF_SIZE];
+
+
+
+void Generate_SineWave(void)
+{
+  for (int i = 0; i < AUDIO_BUF_SIZE; i++)
+  {
+    audioBuffer[i] = (int16_t)(10000 * sin(2 * 3.141592 * i / AUDIO_BUF_SIZE));
+  }
+}
+
+void Play_Sound(void)
+{
+  // HAL_I2S_Transmit(&hi2s3, (uint16_t *)audioBuffer, AUDIO_BUF_SIZE, HAL_MAX_DELAY);
+  HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t *)audioBuffer, AUDIO_BUF_SIZE);
+
+}
+
+void CS43L22_Write(uint8_t reg, uint8_t value)
+{
+  HAL_I2C_Mem_Write(&hi2c1, CS43L22_ADDR, reg, I2C_MEMADD_SIZE_8BIT, &value, 1, HAL_MAX_DELAY);
+}
+
+void CS43L22_Init(void)
+{
+  HAL_Delay(10);
+  CS43L22_Write(0x02, 0x01);  // Power down (standby)
+  CS43L22_Write(0x04, 0xA0);  // Headphone only
+  CS43L22_Write(0x06, 0x07);  // Clock config
+  CS43L22_Write(0x0A, 0x00);  // Speaker volume A (0dB)
+  CS43L22_Write(0x0E, 0x00);  // HP A volume (0dB)
+  CS43L22_Write(0x0F, 0x00);  // HP B volume (0dB)
+  CS43L22_Write(0x02, 0x9E);  // Power on
+
+}
+
+extern I2C_HandleTypeDef hi2c1;
+extern I2S_HandleTypeDef hi2s3;
+
 /* USER CODE END 0 */
 
 /**
@@ -99,12 +144,16 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
   MX_I2S3_Init();
   MX_SPI1_Init();
   MX_USB_HOST_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  CS43L22_Init();
+  Generate_SineWave();
+
   uint8_t btnState = 0;
   uint8_t prevBtnState = 0;
 
@@ -124,6 +173,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+    MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
     MX_USB_HOST_Process();
@@ -161,12 +211,13 @@ int main(void)
     {
       HAL_Delay(10);
     }
+    prevBtnState = btnState;
 
     LIS3DSH_ReadXYZ();
     HAL_Delay(500);
 
-    prevBtnState = btnState;
   }
+  Play_Sound();
   /* USER CODE END 3 */
 }
 
@@ -262,7 +313,6 @@ int16_t LIS3DSH_ReadAxis(uint8_t addr_l, uint8_t addr_h)
   uint8_t high = LIS3DSH_ReadReg(addr_h);     // read MSB
   return (uint16_t)((high << 8) | low);       // 16 bit (MSB + LSB)
 }
-
 
 void LIS3DSH_ReadXYZ(void)
 {
