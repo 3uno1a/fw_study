@@ -1,4 +1,8 @@
-../Core/Src/main.c:71:5:main	9
-../Core/Src/main.c:160:6:SystemClock_Config	3
-../Core/Src/main.c:204:5:_write	1
-../Core/Src/main.c:216:6:Error_Handler	1
+../Core/Src/main.c:77:5:main	9
+../Core/Src/main.c:177:6:SystemClock_Config	3
+../Core/Src/main.c:221:5:_write	1
+../Core/Src/main.c:228:9:LIS3DSH_ReadReg	1
+../Core/Src/main.c:244:6:LIS3DSH_Test	2
+../Core/Src/main.c:259:9:LIS3DSH_ReadAxis	1
+../Core/Src/main.c:267:6:LIS3DSH_ReadXYZ	1
+../Core/Src/main.c:282:6:Error_Handler	1

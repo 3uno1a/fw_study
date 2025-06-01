@@ -27,7 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,7 +61,13 @@ void MX_USB_HOST_Process(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#define LIS3DSH_CS_PORT GPIOB
+#define LIS3DSH_CS_PIN  GPIO_PIN_5
 
+#define LIS3DSH_CS_LOW()   HAL_GPIO_WritePin(LIS3DSH_CS_PORT, LIS3DSH_CS_PIN, GPIO_PIN_RESET)
+#define LIS3DSH_CS_HIGH()  HAL_GPIO_WritePin(LIS3DSH_CS_PORT, LIS3DSH_CS_PIN, GPIO_PIN_SET)
+
+extern SPI_HandleTypeDef hspi1;
 /* USER CODE END 0 */
 
 /**
@@ -104,6 +110,13 @@ int main(void)
 
   uint32_t pressedTime = 0;
   uint8_t blinking = 0;
+
+  //LIS3DSH SPI Test
+  LIS3DSH_CS_HIGH();
+  HAL_Delay(100);
+
+  LIS3DSH_Test();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -111,6 +124,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
     MX_USB_HOST_Process();
 
 //    printf("Hello World-! \r\n");
@@ -147,7 +162,9 @@ int main(void)
       HAL_Delay(10);
     }
 
-    /* USER CODE BEGIN 3 */
+    LIS3DSH_ReadXYZ();
+    HAL_Delay(500);
+
     prevBtnState = btnState;
   }
   /* USER CODE END 3 */
@@ -205,6 +222,55 @@ int _write(int file, char *ptr, int len)
 {
     HAL_UART_Transmit(&huart2, (uint8_t*)ptr, len, HAL_MAX_DELAY);
     return len;
+}
+
+
+uint8_t LIS3DSH_ReadReg(uint8_t reg)
+{
+  uint8_t tx[2];
+  uint8_t rx[2];
+
+  tx[0] = reg | 0x80; // read : MSB = 1
+  tx[1] = 0x00;
+
+  LIS3DSH_CS_LOW();
+  HAL_SPI_TransmitReceive(&hspi1, tx, rx, 2, HAL_MAX_DELAY);
+  LIS3DSH_CS_HIGH();
+
+  return rx[1];
+}
+
+
+void LIS3DSH_Test(void)
+{
+  uint8_t id = LIS3DSH_ReadReg(0x0F);   // read who am i reg
+
+  if (id == 0x3F)  // LIS3DSH ID
+  {
+    printf("LIS3DSH detected! WHO_AM_I = 0x%02X\r\n", id);
+  }
+  else
+  {
+    printf("LIS3DSH not found. Read: 0x%02X\r\n", id);
+  }
+}
+
+
+int16_t LIS3DSH_ReadAxis(uint8_t addr_l, uint8_t addr_h)
+{
+  uint8_t low = LIS3DSH_ReadReg(addr_l);      // read LSB
+  uint8_t high = LIS3DSH_ReadReg(addr_h);     // read MSB
+  return (uint16_t)((high << 8) | low);       // 16 bit (MSB + LSB)
+}
+
+
+void LIS3DSH_ReadXYZ(void)
+{
+  int16_t x = LIS3DSH_ReadAxis(0x28, 0x29);    // x-LSB, x-MSB
+  int16_t y = LIS3DSH_ReadAxis(0x2A, 0x2B);
+  int16_t z = LIS3DSH_ReadAxis(0x2C, 0x2D);
+
+  printf("X: %d, Y: %d, Z: %d \r\n", x, y, z);
 }
 
 /* USER CODE END 4 */

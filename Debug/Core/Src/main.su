@@ -1,4 +1,8 @@
-../Core/Src/main.c:71:5:main	24	static
-../Core/Src/main.c:160:6:SystemClock_Config	88	static
-../Core/Src/main.c:204:5:_write	24	static
-../Core/Src/main.c:216:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:77:5:main	24	static
+../Core/Src/main.c:177:6:SystemClock_Config	88	static
+../Core/Src/main.c:221:5:_write	24	static
+../Core/Src/main.c:228:9:LIS3DSH_ReadReg	32	static
+../Core/Src/main.c:244:6:LIS3DSH_Test	16	static
+../Core/Src/main.c:259:9:LIS3DSH_ReadAxis	24	static
+../Core/Src/main.c:267:6:LIS3DSH_ReadXYZ	16	static
+../Core/Src/main.c:282:6:Error_Handler	4	static,ignoring_inline_asm
