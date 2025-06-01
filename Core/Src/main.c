@@ -25,9 +25,6 @@
 #include "usb_host.h"
 #include "gpio.h"
 
-#include <stdio.h>
-
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -102,7 +99,11 @@ int main(void)
   MX_USB_HOST_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  uint8_t btnState = 0;
+  uint8_t prevBtnState = 0;
 
+  uint32_t pressedTime = 0;
+  uint8_t blinking = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -112,11 +113,42 @@ int main(void)
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
-    printf("Hello world!\r\n");
-    HAL_Delay(1000);
+//    printf("Hello World-! \r\n");
+//    HAL_Delay(1000);
 
+    btnState = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+
+    if (btnState == GPIO_PIN_SET && prevBtnState == GPIO_PIN_RESET)
+        {
+          pressedTime = HAL_GetTick();
+        }
+
+    if (btnState == GPIO_PIN_SET && (HAL_GetTick() - pressedTime >= 2000))
+    {
+      blinking = 1;
+    }
+
+    if (btnState == GPIO_PIN_RESET && prevBtnState == GPIO_PIN_SET)
+    {
+      if (HAL_GetTick() - pressedTime < 2000)
+      {
+        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);   // Green
+      }
+      blinking = 0;
+    }
+
+    if (blinking)
+    {
+      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);    // Blue
+      HAL_Delay(50);
+    }
+    else
+    {
+      HAL_Delay(10);
+    }
 
     /* USER CODE BEGIN 3 */
+    prevBtnState = btnState;
   }
   /* USER CODE END 3 */
 }
